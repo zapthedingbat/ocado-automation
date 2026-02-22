@@ -1,0 +1,22 @@
+{
+  "name": "ocado-automation",
+  "version": "1.0.0",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node scripts/test-api.js",
+    "book-tuesday": "node scripts/book-tuesday-slot.js"
+  },
+  "keywords": ["ocado", "shopping", "automation", "browser"],
+  "license": "ISC",
+  "description": "Browser automation for Ocado shopping list management with REST API",
+  "dependencies": {
+    "express": "^5.1.0",
+    "playwright": "^1.57.0"
+  },
+  "devDependencies": {
+    "dotenv": "^16.6.1"
+  }
+}
