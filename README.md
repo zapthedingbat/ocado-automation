@@ -32,4 +32,3 @@ All require `X-API-Key` header.
 ## Scripts
 
 - `npm run test` - Runs API integration test
-- `npm run book-tuesday` - Books first Tuesday delivery slot
