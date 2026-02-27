@@ -50,7 +50,7 @@ export function createApiRouter(automation) {
   }));
 
   router.get('/delivery/slot', asyncHandler(async (req, res) => {
-    const result = await automation.getDeliverySlots();
+    const result = await automation.getAvailableDeliverySlots();
     res.json(result);
   }));
 
