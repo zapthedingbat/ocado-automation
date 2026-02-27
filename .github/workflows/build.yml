@@ -44,6 +44,8 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=sha,prefix=
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
 
       - name: Build and push
         uses: docker/build-push-action@v6
