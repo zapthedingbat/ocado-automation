@@ -217,6 +217,7 @@ export function createMcpRouter(automation) {
             delete transportsBySessionId[sid];
             log('Streamable HTTP session closed: %s', sid);
           }
+          transport.onclose = undefined; // prevent re-entry when server.close() calls transport.close()
           server.close();
         };
         await server.connect(transport);
