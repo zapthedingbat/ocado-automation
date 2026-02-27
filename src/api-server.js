@@ -1,9 +1,9 @@
 import express from 'express';
 import { Automation } from './automation.js';
+import { requireApiKey } from './auth.js';
 import { createLogger } from './logger.js';
 
 const log = createLogger('server');
-const API_KEY = process.env.OCADO_API_KEY;
 
 /**
  * Create an Express router that serves the Ocado REST API. Mount at /api for paths like /api/search, /api/cart.
@@ -13,15 +13,11 @@ const API_KEY = process.env.OCADO_API_KEY;
 export function createApiRouter(automation) {
   const router = express.Router();
 
-  router.use((req, res, next) => {
-    if (!API_KEY) return next();
-    if (req.headers['x-api-key'] !== API_KEY) return res.status(401).json({ error: 'Invalid API key' });
-    next();
-  });
-
   const asyncHandler = (fn) => (req, res, next) => fn(req, res, next).catch(next);
 
   router.get('/health', (_, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
+
+  router.use(requireApiKey);
 
   router.get('/search', asyncHandler(async (req, res) => {
     const query = req.query.q || req.query.query;

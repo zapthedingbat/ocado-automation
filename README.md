@@ -14,7 +14,7 @@ The container runs **one server** (port 3000) with:
 - **/api/\*** – REST API (search, cart, delivery, orders)
 - **POST /mcp** – MCP endpoint for smart home / voice (Streamable HTTP)
 
-Requires `OCADO_EMAIL`, `OCADO_PASSWORD`, and `OCADO_API_KEY` in environment. Optional: `OCADO_HEARTBEAT_MINUTES` (default 15) to control how often the session is refreshed and saved.
+Requires `OCADO_EMAIL`, `OCADO_PASSWORD`, and `OCADO_API_KEY` in environment. Optional: `OCADO_HEARTBEAT_MINUTES` (default 15) to control how often the session is refreshed and saved. When `OCADO_API_KEY` is set, both the API and MCP routes require authentication (see below). Optional: `MCP_ALLOWED_HOSTS` (comma-separated hostnames) when running the standalone MCP server to allow non-localhost hosts and silence DNS rebinding warnings.
 
 ## Running locally
 
@@ -38,7 +38,11 @@ MCP at `POST /mcp` on port 3100.
 
 ## MCP
 
-Point your MCP client at **POST http://&lt;host&gt;:3000/mcp**
+Point your MCP client at **POST http://&lt;host&gt;:3000/mcp** (combined service) or **POST http://&lt;host&gt;:3100/mcp** (standalone MCP server).
+
+When `OCADO_API_KEY` is set, send the key via **Authorization: Bearer &lt;key&gt;** or **X-API-Key: &lt;key&gt;** on each request.
+
+For the standalone MCP server bound to `0.0.0.0`, set **MCP_ALLOWED_HOSTS** (e.g. `localhost,127.0.0.1,192.168.10.20`) to allow your host and avoid DNS rebinding warnings.
 
 **Tools exposed:** 
 - `search_products`,
@@ -52,7 +56,7 @@ Point your MCP client at **POST http://&lt;host&gt;:3000/mcp**
 
 ## API Endpoints
 
-When using the combined service, all API paths are under **/api**. All require `X-API-Key` header (unless `OCADO_API_KEY` is unset).
+When using the combined service, all API paths are under **/api**. All require **Authorization: Bearer &lt;key&gt;** or **X-API-Key: &lt;key&gt;** (when `OCADO_API_KEY` is set). `/health` and `/api/health` are always unauthenticated.
 
 | Method | Path                     | Description                                   |
 |--------|--------------------------|-----------------------------------------------|

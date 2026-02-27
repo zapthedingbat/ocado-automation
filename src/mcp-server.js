@@ -9,6 +9,7 @@ import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js
 import express from 'express';
 import * as z from 'zod/v4';
 import { Automation } from './automation.js';
+import { requireApiKey } from './auth.js';
 import { createLogger } from './logger.js';
 
 const log = createLogger('mcp-server');
@@ -247,8 +248,11 @@ if (isMain) {
   const automation = new Automation(ocadoConfig);
   const app = createMcpExpressApp({
     host: process.env.MCP_HOST || '0.0.0.0',
-    ...(process.env.MCP_ALLOWED_HOSTS && { allowedHosts: process.env.MCP_ALLOWED_HOSTS.split(',') }),
+    allowedHosts: process.env.MCP_ALLOWED_HOSTS
+      ? process.env.MCP_ALLOWED_HOSTS.split(',').map((h) => h.trim()).filter(Boolean)
+      : ['localhost', '127.0.0.1', '[::1]'],
   });
+  app.use(requireApiKey);
   app.use('/mcp', createMcpRouter(automation));
   const PORT = Number(process.env.MCP_PORT) || 3100;
   const HOST = process.env.MCP_HOST || '0.0.0.0';

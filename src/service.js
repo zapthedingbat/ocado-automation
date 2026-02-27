@@ -11,6 +11,7 @@ import express from 'express';
 import { Automation } from './automation.js';
 import { createApiRouter } from './api-server.js';
 import { createMcpRouter } from './mcp-server.js';
+import { requireApiKey } from './auth.js';
 import { createLogger } from './logger.js';
 
 const log = createLogger('service');
@@ -32,8 +33,8 @@ const app = express();
 app.use(express.json());
 
 app.get('/health', (_, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
-app.use('/api', createApiRouter(automation));
-app.use('/mcp', createMcpRouter(automation));
+app.use('/api', requireApiKey, createApiRouter(automation));
+app.use('/mcp', requireApiKey, createMcpRouter(automation));
 app.use((_, res) => res.status(404).json({ error: 'Not found' }));
 
 process.on('SIGTERM', async () => {
