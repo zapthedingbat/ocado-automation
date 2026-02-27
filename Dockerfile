@@ -13,9 +13,8 @@ RUN npm install --omit=dev
 COPY ./src ./src/
 
 ENV NODE_ENV=production
-ENV HEADLESS=true
-ENV API_KEY=change-me-in-production
+ENV OCADO_HEADLESS=true
 
 EXPOSE 3000
 
-CMD ["node", "src/server.js"]
+CMD ["node", "src/service.js"]

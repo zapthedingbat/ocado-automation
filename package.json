@@ -4,17 +4,27 @@
   "main": "src/server.js",
   "type": "module",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "node --watch src/server.js",
-    "test": "node scripts/test-api.js",
+    "start": "node -r dotenv/config src/api-server.js",
+    "dev": "node --watch -r dotenv/config src/api-server.js",
+    "service": "node -r dotenv/config src/service.js",
+    "mcp-server": "node -r dotenv/config src/mcp-server.js",
+    "test": "node -r dotenv/config scripts/test-all.js",
     "book-tuesday": "node scripts/book-tuesday-slot.js"
   },
-  "keywords": ["ocado", "shopping", "automation", "browser"],
+  "keywords": [
+    "ocado",
+    "shopping",
+    "automation",
+    "browser"
+  ],
   "license": "ISC",
   "description": "Browser automation for Ocado shopping list management with REST API",
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "debug": "^4.4.3",
     "express": "^5.1.0",
-    "playwright": "^1.57.0"
+    "playwright": "^1.57.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "dotenv": "^16.6.1"

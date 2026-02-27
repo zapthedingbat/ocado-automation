@@ -1,12 +1,17 @@
 services:
   ocado-automation:
     image: ghcr.io/zapthedingbat/ocado-automation:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NODE_ENV: production
     container_name: ocado-automation
     environment:
       - NODE_ENV=production
       - PORT=3000
-      - API_KEY=${OCADO_API_KEY}
-      - HEADLESS=true
+      - OCADO_API_KEY=${OCADO_API_KEY}
+      - OCADO_HEADLESS=true
       - OCADO_EMAIL=${OCADO_EMAIL}
       - OCADO_PASSWORD=${OCADO_PASSWORD}
       - OCADO_STORAGE_STATE_PATH=/data/ocado-storage.json
