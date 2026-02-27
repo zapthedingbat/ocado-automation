@@ -36,11 +36,19 @@ npm run mcp-server
 ```
 MCP at `POST /mcp` on port 3100.
 
-## Smart home & voice: MCP
+## MCP
 
-Point your MCP client at **POST http://&lt;host&gt;:3000/mcp** when using the combined service (Docker or `npm run service`). When using `npm run mcp-server` only, use port 3100.
+Point your MCP client at **POST http://&lt;host&gt;:3000/mcp**
 
-**Tools exposed:** `search_products`, `get_cart`, `add_to_cart`, `remove_from_cart`, `get_delivery_slots`, `get_selected_delivery_slot`, `select_delivery_slot`, `get_upcoming_orders`.
+**Tools exposed:** 
+- `search_products`,
+- `get_cart`,
+- `add_to_cart`,
+- `remove_from_cart`,
+- `get_delivery_slots`,
+- `get_selected_delivery_slot`,
+- `select_delivery_slot`,
+- `get_upcoming_orders`.
 
 ## API Endpoints
 
