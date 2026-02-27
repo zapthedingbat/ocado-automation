@@ -17,7 +17,7 @@
     "automation",
     "browser"
   ],
-  "license": "ISC",
+  "license": "MIT",
   "description": "Browser automation for Ocado shopping list management with REST API",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",
