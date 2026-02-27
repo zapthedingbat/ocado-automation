@@ -17,7 +17,7 @@ const log = createLogger('service');
 
 const ocadoConfig = {
   headless: process.env.OCADO_HEADLESS !== 'false',
-  devtools: process.env.OCADO_DEVTOOLS === 'false',
+  devtools: process.env.OCADO_DEVTOOLS === 'true',
   proxy: process.env.OCADO_PROXY || undefined,
   storageStatePath: process.env.OCADO_STORAGE_STATE_PATH || 'ocado-storage.json',
   email: process.env.OCADO_EMAIL,
