@@ -187,7 +187,7 @@ export class Automation {
     const page = await this._createPage();
     if(!page.url().startsWith('https://www.ocado.com/')) {
       log('Navigating to home page to get CSRF token');
-      page.goto('https://www.ocado.com/');
+      await page.goto('https://www.ocado.com/');
     }
     const ocadoPage = new OcadoPage(page);
     const token = await ocadoPage.getCsrfToken();
