@@ -1,11 +1,6 @@
 services:
   ocado-automation:
     image: ghcr.io/zapthedingbat/ocado-automation:latest
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        NODE_ENV: production
     container_name: ocado-automation
     environment:
       - NODE_ENV=production
