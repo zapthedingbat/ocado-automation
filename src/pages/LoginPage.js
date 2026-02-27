@@ -42,9 +42,10 @@ export class LoginPage extends BasePage {
   }
 
   async waitForRecaptchaIfNeeded({ timeout = 180000, pollInterval = 1000 } = {}) {
+    const deadline = Date.now() + timeout;
     while (await this.isRecaptchaVisible()) {
+      if (Date.now() > deadline) throw new Error('reCAPTCHA was not solved within the timeout period');
       await new Promise(r => setTimeout(r, pollInterval));
-      if (Date.now() > timeout) throw new Error('reCAPTCHA was not solved within the timeout period');
     }
   }
 
