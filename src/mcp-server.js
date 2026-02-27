@@ -6,13 +6,19 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';
+import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
+import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
 import express from 'express';
+import { randomUUID } from 'node:crypto';
 import * as z from 'zod/v4';
 import { Automation } from './automation.js';
 import { requireApiKey } from './auth.js';
 import { createLogger } from './logger.js';
 
 const log = createLogger('mcp-server');
+
+/** Session storage for both Streamable HTTP and HTTP+SSE (by session ID). */
+const transportsBySessionId = {};
 
 /**
  * Create an Express router that serves the MCP endpoint. Mount at /mcp for POST /mcp.
@@ -175,17 +181,67 @@ export function createMcpRouter(automation) {
     return server;
   }
 
-  router.post('/', async (req, res) => {
-    const server = getMcpServer();
+  router.all('/', async (req, res) => {
+    const sessionId = req.headers['mcp-session-id'];
+    let transport = sessionId ? transportsBySessionId[sessionId] : undefined;
     try {
-      const transport = new StreamableHTTPServerTransport({
-        sessionIdGenerator: undefined,
-      });
-      await server.connect(transport);
-      await transport.handleRequest(req, res, req.body);
+      if (req.method === 'GET' || req.method === 'DELETE') {
+        if (!transport || !(transport instanceof StreamableHTTPServerTransport)) {
+          res.status(sessionId ? 404 : 400).json({
+            jsonrpc: '2.0',
+            error: { code: -32000, message: sessionId ? 'Session not found.' : 'Bad Request: Mcp-Session-Id required for GET/DELETE.' },
+            id: null,
+          });
+          return;
+        }
+        await transport.handleRequest(req, res, req.body);
+        return;
+      }
+      if (transport instanceof StreamableHTTPServerTransport) {
+        // Reuse existing Streamable HTTP session
+      } else if (sessionId && transport) {
+        res.status(400).json({
+          jsonrpc: '2.0',
+          error: { code: -32000, message: 'Bad Request: Session uses a different transport (use /messages for SSE).' },
+          id: null,
+        });
+        return;
+      } else if (!sessionId && isInitializeRequest(req.body)) {
+        const server = getMcpServer();
+        transport = new StreamableHTTPServerTransport({
+          sessionIdGenerator: () => randomUUID(),
+        });
+        transport.onclose = () => {
+          const sid = transport.sessionId;
+          if (sid && transportsBySessionId[sid] === transport) {
+            delete transportsBySessionId[sid];
+            log('Streamable HTTP session closed: %s', sid);
+          }
+          server.close();
+        };
+        await server.connect(transport);
+        const sid = transport.sessionId;
+        if (sid) transportsBySessionId[sid] = transport;
+        await transport.handleRequest(req, res, req.body);
+        res.on('close', () => {
+          transport.close?.();
+        });
+        return;
+      } else {
+        res.status(400).json({
+          jsonrpc: '2.0',
+          error: { code: -32000, message: 'Bad Request: No valid session ID or initialize request.' },
+          id: null,
+        });
+        return;
+      }
+      if (transport instanceof StreamableHTTPServerTransport) {
+        await transport.handleRequest(req, res, req.body);
+      }
       res.on('close', () => {
-        transport.close();
-        server.close();
+        if (transport && !sessionId) {
+          transport.close?.();
+        }
       });
     } catch (err) {
       log('MCP request error: %s', err.message);
@@ -199,14 +255,53 @@ export function createMcpRouter(automation) {
     }
   });
 
-  router.get('/', (req, res) => {
-    res.writeHead(405, { 'Content-Type': 'application/json' }).end(
-      JSON.stringify({
+  // HTTP+SSE transport (legacy): for Home Assistant and other clients that use GET /sse + POST /messages
+  router.get('/sse', async (req, res) => {
+    const endpoint = `${req.baseUrl || '/mcp'}/messages`;
+    const transport = new SSEServerTransport(endpoint, res);
+    const sid = transport.sessionId;
+    transportsBySessionId[sid] = transport;
+    res.on('close', () => {
+      if (transportsBySessionId[sid] === transport) {
+        delete transportsBySessionId[sid];
+        log('SSE session closed: %s', sid);
+      }
+    });
+    const server = getMcpServer();
+    await server.connect(transport);
+  });
+
+  router.post('/messages', async (req, res) => {
+    const sessionId = req.query.sessionId;
+    const transport = sessionId ? transportsBySessionId[sessionId] : undefined;
+    if (!transport) {
+      res.status(400).json({
         jsonrpc: '2.0',
-        error: { code: -32000, message: 'Method not allowed.' },
+        error: { code: -32000, message: 'Bad Request: No transport found for sessionId. Connect to GET /mcp/sse first.' },
         id: null,
-      })
-    );
+      });
+      return;
+    }
+    if (!(transport instanceof SSEServerTransport)) {
+      res.status(400).json({
+        jsonrpc: '2.0',
+        error: { code: -32000, message: 'Bad Request: Session uses Streamable HTTP, not SSE.' },
+        id: null,
+      });
+      return;
+    }
+    try {
+      await transport.handlePostMessage(req, res, req.body);
+    } catch (err) {
+      log('MCP SSE messages error: %s', err.message);
+      if (!res.headersSent) {
+        res.status(500).json({
+          jsonrpc: '2.0',
+          error: { code: -32603, message: err.message || 'Internal server error' },
+          id: null,
+        });
+      }
+    }
   });
 
   return router;
@@ -260,5 +355,5 @@ if (isMain) {
     await automation.close().catch(console.error);
     process.exit(0);
   });
-  app.listen(PORT, HOST, () => log('Ocado MCP server on %s:%s (POST /mcp)', HOST, PORT));
+  app.listen(PORT, HOST, () => log('Ocado MCP server on %s:%s (Streamable HTTP: POST /mcp; HTTP+SSE: GET /mcp/sse, POST /mcp/messages)', HOST, PORT));
 }

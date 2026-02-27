@@ -45,5 +45,5 @@ process.on('SIGTERM', async () => {
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
 app.listen(PORT, HOST, () => {
-  log('Ocado service on %s:%s (API: /api/*  MCP: POST /mcp)', HOST, PORT);
+  log('Ocado service on %s:%s (API: /api/*  MCP: POST /mcp, GET/POST /mcp/sse, /mcp/messages)', HOST, PORT);
 });
