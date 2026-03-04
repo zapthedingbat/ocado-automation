@@ -37,11 +37,11 @@ function sendJsonError(res, status, code, message) {
 export function createMcpRouter(automation) {
   const router = express.Router();
 
-  /** @type {Record<string, SSEServerTransport>} */
-  const sseTransports = {};
+  /** @type {Map<string, SSEServerTransport>} */
+  const sseTransports = new Map();
 
-  /** @type {Record<string, StreamableHTTPServerTransport>} */
-  const streamableTransports = {};
+  /** @type {Map<string, StreamableHTTPServerTransport>} */
+  const streamableTransports = new Map();
 
   function getMcpServer() {
     const server = new McpServer(
@@ -161,7 +161,7 @@ export function createMcpRouter(automation) {
   // Streamable HTTP: POST/GET/DELETE /
   router.all('/', async (req, res) => {
     const sessionId = req.headers['mcp-session-id'];
-    const transport = sessionId ? streamableTransports[sessionId] : undefined;
+    const transport = sessionId ? streamableTransports.get(sessionId) : undefined;
     try {
       if (req.method === 'GET' || req.method === 'DELETE') {
         if (!sessionId) {
@@ -194,18 +194,17 @@ export function createMcpRouter(automation) {
         });
         newTransport.onclose = () => {
           const sid = newTransport.sessionId;
-          if (sid && streamableTransports[sid] === newTransport) {
-            delete streamableTransports[sid];
+          if (sid && streamableTransports.get(sid) === newTransport) {
+            streamableTransports.delete(sid);
             log('Streamable HTTP session closed: %s', sid);
           }
           newTransport.onclose = undefined;
           server.close();
         };
         await server.connect(newTransport);
-        const sid = newTransport.sessionId;
-        if (sid) streamableTransports[sid] = newTransport;
         await newTransport.handleRequest(req, res, req.body);
-        res.on('close', () => newTransport.close?.());
+        const sid = newTransport.sessionId;
+        if (sid) streamableTransports.set(sid, newTransport);
         return;
       }
       sendJsonError(res, 405, -32000, 'Method not allowed.');
@@ -219,8 +218,8 @@ export function createMcpRouter(automation) {
     try {
       const endpoint = `${req.baseUrl || '/mcp'}/messages`;
       const transport = new SSEServerTransport(endpoint, res);
-      sseTransports[transport.sessionId] = transport;
-      transport.onclose = () => delete sseTransports[transport.sessionId];
+      sseTransports.set(transport.sessionId, transport);
+      transport.onclose = () => sseTransports.delete(transport.sessionId);
       await getMcpServer().connect(transport);
     } catch (err) {
       log('SSE session start error: %s', err.message);
@@ -234,7 +233,7 @@ export function createMcpRouter(automation) {
       sendJsonError(res, 400, -32000, 'Missing sessionId parameter');
       return;
     }
-    const transport = sseTransports[sessionId];
+    const transport = sseTransports.get(sessionId);
     if (!transport) {
       log('Session not found for sessionId: %s', sessionId);
       sendJsonError(res, 404, -32000, 'Session not found');
