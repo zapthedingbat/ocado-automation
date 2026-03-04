@@ -43,12 +43,18 @@ export function createMcpRouter(automation) {
   /** @type {Map<string, StreamableHTTPServerTransport>} */
   const streamableTransports = new Map();
 
+  const SERVER_INFO = {
+    name: 'ocado-shopping',
+    version: '1.0.0',
+    instructions: 'Tools for managing Ocado grocery shopping: search products, manage cart, delivery slots, and upcoming orders. Use search_products to find product IDs before adding to cart.',
+  };
+
   function getMcpServer() {
     const server = new McpServer(
       {
-        name: 'ocado-shopping',
-        version: '1.0.0',
-        instructions: 'Tools for managing Ocado grocery shopping: search products, manage cart, delivery slots, and upcoming orders. Use search_products to find product IDs before adding to cart.',
+        name: SERVER_INFO.name,
+        version: SERVER_INFO.version,
+        instructions: SERVER_INFO.instructions,
       },
       { capabilities: { logging: {} } }
     );
@@ -177,6 +183,24 @@ export function createMcpRouter(automation) {
       }
       if (req.method === 'POST') {
         if (transport) {
+          if (isInitializeRequest(req.body)) {
+            // Send initialize result for a new session or a second initialize on an existing session (e.g. HA config flow).
+            res.setHeader('mcp-session-id', sessionId);
+            res.status(200).json({
+              jsonrpc: '2.0',
+              result: {
+                protocolVersion: '2025-03-26',
+                capabilities: { logging: {} },
+                serverInfo: {
+                  name: SERVER_INFO.name,
+                  version: SERVER_INFO.version
+                },
+                instructions: SERVER_INFO.instructions,
+              },
+              id: req.body.id ?? null,
+            });
+            return;
+          }
           await transport.handleRequest(req, res, req.body);
           return;
         }
