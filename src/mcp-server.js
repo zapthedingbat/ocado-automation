@@ -191,6 +191,7 @@ export function createMcpRouter(automation) {
         const server = getMcpServer();
         const newTransport = new StreamableHTTPServerTransport({
           sessionIdGenerator: () => randomUUID(),
+          onsessioninitialized: (sid) => streamableTransports.set(sid, newTransport),
         });
         newTransport.onclose = () => {
           const sid = newTransport.sessionId;
@@ -203,8 +204,6 @@ export function createMcpRouter(automation) {
         };
         await server.connect(newTransport);
         await newTransport.handleRequest(req, res, req.body);
-        const sid = newTransport.sessionId;
-        if (sid) streamableTransports.set(sid, newTransport);
         return;
       }
       sendJsonError(res, 405, -32000, 'Method not allowed.');
