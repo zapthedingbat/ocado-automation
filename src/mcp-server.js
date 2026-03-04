@@ -190,7 +190,7 @@ export function createMcpRouter(automation) {
               jsonrpc: '2.0',
               result: {
                 protocolVersion: '2025-03-26',
-                capabilities: { logging: {} },
+                capabilities: { logging: {}, tools: { listChanged: true } },
                 serverInfo: {
                   name: SERVER_INFO.name,
                   version: SERVER_INFO.version
