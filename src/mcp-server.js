@@ -116,10 +116,9 @@ export function createMcpRouter(automation) {
         description: 'List available Ocado delivery slots. Returns slot IDs and times; use select_delivery_slot with a slotId to book.',
         inputSchema: {},
         handler: async () => {
-          const { slots } = await automation.getAvailableDeliverySlots();
-          const flat = flattenSlots(slots || []);
-          const lines = flat.slice(0, 15).map((s) => `${s.slotId}: ${s.startTime} – ${s.endTime}`).join('\n');
-          return { content: [{ type: 'text', text: lines || 'No slots returned. Ensure cart has a delivery address.' }] };
+          const slots = await automation.getAvailableDeliverySlots();
+          const lines = slots.map((s) => `${s.slotId}: ${s.startTime} – ${s.endTime}`).join('\n');
+          return { content: [{ type: 'text', text: lines || 'No available delivery slots returned.' }] };
         },
       },
       {
@@ -271,24 +270,6 @@ export function createMcpRouter(automation) {
   });
 
   return router;
-}
-
-function flattenSlots(slots) {
-  const out = [];
-  for (const item of slots) {
-    if (item.slotId && (item.startTime ?? item.start)) {
-      out.push({
-        slotId: item.slotId,
-        startTime: item.startTime ?? item.start,
-        endTime: item.endTime ?? item.end,
-      });
-    } else if (Array.isArray(item.slots)) {
-      out.push(...flattenSlots(item.slots));
-    } else if (Array.isArray(item)) {
-      out.push(...flattenSlots(item));
-    }
-  }
-  return out;
 }
 
 // Run standalone when executed directly (e.g. npm run mcp-server)
