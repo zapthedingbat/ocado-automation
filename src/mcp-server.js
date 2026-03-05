@@ -116,10 +116,9 @@ export function createMcpRouter(automation) {
         description: 'List available Ocado delivery slots. Returns slot IDs and times; use select_delivery_slot with a slotId to book.',
         inputSchema: {},
         handler: async () => {
-          const { slots } = await automation.getAvailableDeliverySlots();
-          const flat = flattenSlots(slots || []);
-          const lines = flat.slice(0, 15).map((s) => `${s.slotId}: ${s.startTime} – ${s.endTime}`).join('\n');
-          return { content: [{ type: 'text', text: lines || 'No slots returned. Ensure cart has a delivery address.' }] };
+          const slots = await automation.getAvailableDeliverySlots();
+          const lines = slots.map((s) => `${s.slotId}: ${s.startTime} – ${s.endTime}`).join('\n');
+          return { content: [{ type: 'text', text: lines || 'No available delivery slots returned.' }] };
         },
       },
       {
@@ -275,13 +274,19 @@ export function createMcpRouter(automation) {
 
 function flattenSlots(slots) {
   const out = [];
+  if (!slots) return out;
+  if (!Array.isArray(slots)) {
+    if (Array.isArray(slots.slots)) return flattenSlots(slots.slots);
+    if (Array.isArray(slots.dates)) return flattenSlots(slots.dates);
+    if (typeof slots === 'object') return flattenSlots(Object.values(slots));
+    return out;
+  }
   for (const item of slots) {
-    if (item.slotId && (item.startTime ?? item.start)) {
-      out.push({
-        slotId: item.slotId,
-        startTime: item.startTime ?? item.start,
-        endTime: item.endTime ?? item.end,
-      });
+    const slotId = item.slotId ?? item.id;
+    const startTime = item.startTime ?? item.start ?? item.startDate;
+    const endTime = item.endTime ?? item.end ?? item.endDate;
+    if (slotId && startTime) {
+      out.push({ slotId, startTime, endTime });
     } else if (Array.isArray(item.slots)) {
       out.push(...flattenSlots(item.slots));
     } else if (Array.isArray(item)) {

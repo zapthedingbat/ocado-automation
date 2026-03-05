@@ -147,10 +147,19 @@ export class OcadoApiClient {
     };
     const res = await this.post('/api/ecomslots/v1/slots', payload);
     const json = await res.json();
+
     log('getDeliverySlots %O', json);
 
-    const slots = json.slotWindows ?? json.slots ?? json.deliverySlots ?? [];
-    return { slots };
+    const slots = json.standardSlots.filter(slot => slot.available).map(slot => {
+      return {
+        slotId: slot.slotId,
+        startTime: slot.slotWindow[0].start,
+        endTime: slot.slotWindow[0].end,
+        deliveryPrice: slot.deliveryPrice
+      };
+    });
+    
+    return slots;
   }
 
   async selectDeliverySlot(slotId) {
